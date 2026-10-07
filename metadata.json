@@ -1,0 +1,6 @@
+{
+  "name": "Gemini",
+  "description": "A Point of Sale (POS), Fast-Billing, and Inventory App for hardware store retail counters.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

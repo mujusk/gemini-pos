@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- POS Terminal / Receipt Graphic -->
+    <path
+        android:fillColor="#38BDF8"
+        android:pathData="M34,30h40c3.3,0 6,2.7 6,6v40c0,3.3 -2.7,6 -6,6H34c-3.3,0 -6,-2.7 -6,-6V36c0,-3.3 2.7,-6 6,-6z" />
+    <!-- Screen inside terminal -->
+    <path
+        android:fillColor="#0F172A"
+        android:pathData="M34,36h40v22H34z" />
+    <!-- Display elements on screen (sales chart / currency symbol) -->
+    <path
+        android:fillColor="#34D399"
+        android:pathData="M40,43h10v2H40zM40,48h18v2H40zM64,43h4v7h-4z" />
+    <!-- Keypad buttons (13-key / grid representation) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M35,63h8v6h-8zM46,63h8v6h-8zM57,63h8v6h-8zM68,63h5v6h-5zM35,71h8v5h-8zM46,71h8v5h-8zM57,71h16v5H57z" />
+    <!-- Receipt top paper slip -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M40,24h28v6H40z" />
+    <path
+        android:fillColor="#94A3B8"
+        android:pathData="M43,26h22v1.5H43z" />
+</vector>
