@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Gemini POS</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- QRCode.js Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <!-- HTML5 QR Code Scanner Library -->
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <style>
+    body {
+      background-color: #FFFFFF;
+      color: #0F172A;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    .safe-bottom {
+      padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 12px));
+    }
+    @media print {
+      body * { visibility: hidden; }
+      #printArea, #printArea * { visibility: visible; }
+      #printArea { position: absolute; left: 0; top: 0; width: 58mm; padding: 2mm; }
+    }
+  </style>
+</head>
+<body class="bg-white text-slate-900 min-h-screen flex flex-col justify-between">
+
+  <!-- TOP HEADER -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 px-4 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <div class="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center font-bold text-sm">G</div>
+      <h1 class="text-lg font-bold tracking-tight text-slate-900">Gemini POS</h1>
+    </div>
+    <!-- HEADER CAMERA SCANNER BUTTON -->
+    <button id="openScannerBtn" class="p-2.5 rounded-full bg-slate-100 text-slate-800 hover:bg-slate-200 active:scale-95 transition-all" title="Scan Barcode/QR">
+      <svg class="w-6 h-6 text-slate-900" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3 7V5a2 2 0 012-2h2m10 0h2a2 2 0 012 2v2m0 10v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2" />
+        <rect x="7" y="7" width="10" height="10" rx="1.5" />
+      </svg>
+    </button>
+  </header>
+
+  <!-- MAIN VIEW CONTAINER -->
+  <main class="flex-1 p-4 pb-28 max-w-lg mx-auto w-full">
+    
+    <!-- HOME SCREEN TAB -->
+    <section id="tabHome" class="tab-content space-y-4">
+      <!-- Active Bill Summary -->
+      <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+        <div class="flex justify-between items-center mb-3">
+          <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Current Cart</span>
+          <span id="cartCount" class="text-xs bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full font-medium">0 Items</span>
+        </div>
+        <div id="cartItemsList" class="space-y-2.5 divide-y divide-slate-100">
+          <div class="py-6 text-center text-slate-400 text-sm" id="emptyCartMsg">Cart is empty. Tap scanner above to add items!</div>
+        </div>
+        <div class="border-t border-slate-200 mt-4 pt-3 flex justify-between items-center">
+          <span class="font-medium text-slate-600">Total Amount:</span>
+          <span id="grandTotal" class="text-2xl font-bold text-slate-900">₹0.00</span>
+        </div>
+        <button id="checkoutBtn" class="w-full mt-4 py-3 bg-slate-900 text-white font-semibold rounded-xl active:scale-[0.99] transition-all">Complete Sale & Print</button>
+      </div>
+    </section>
+
+    <!-- CATALOG / ITEMS TAB -->
+    <section id="tabCatalog" class="tab-content hidden space-y-4">
+      <div class="flex justify-between items-center">
+        <h2 class="font-bold text-slate-800 text-base">Store Products</h2>
+        <span class="text-xs text-slate-500">58mm Sticker Printing</span>
+      </div>
+      <div id="productsGrid" class="space-y-2.5"></div>
+    </section>
+  </main>
+
+  <!-- BOTTOM NAVIGATION (FIXED INSETS, FULL WHITE) -->
+  <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 safe-bottom z-30 px-6 py-2 flex justify-around items-center">
+    <button onclick="switchTab('home')" class="nav-btn flex flex-col items-center gap-1 text-slate-900 font-semibold" id="btnNavHome">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+      <span class="text-xs">HOME</span>
+    </button>
+    <button onclick="switchTab('catalog')" class="nav-btn flex flex-col items-center gap-1 text-slate-400 font-medium" id="btnNavCatalog">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h7"/></svg>
+      <span class="text-xs">CATALOG</span>
+    </button>
+  </nav>
+
+  <!-- FULL-SCREEN CAMERA SCANNER OVERLAY (GPay Style) -->
+  <div id="scannerModal" class="fixed inset-0 bg-black z-50 hidden flex flex-col justify-between">
+    <div class="p-4 flex justify-between items-center z-10 bg-gradient-to-b from-black/80 to-transparent">
+      <span class="text-white font-medium text-sm tracking-wide">Scan Product QR Code</span>
+      <button id="closeScannerBtn" class="text-white p-2 rounded-full bg-white/20 active:scale-90">✕</button>
+    </div>
+    <div class="relative flex-1 flex items-center justify-center">
+      <div id="qrReader" class="w-full h-full"></div>
+    </div>
+    <div class="p-6 text-center text-xs text-white/70 bg-gradient-to-t from-black/80 to-transparent">
+      Align the PhonePe-style QR sticker within frame
+    </div>
+  </div>
+
+  <!-- 58MM PRINT CONTAINER -->
+  <div id="printArea" class="hidden"></div>
+
+  <script>
+    const sampleProducts = [
+      { id: '101', name: 'Drill Bit 6mm', price: 45.00 },
+      { id: '102', name: 'PVC Pipe Fitting', price: 85.00 },
+      { id: '103', name: 'M-Seal Epoxy', price: 20.00 },
+      { id: '104', name: 'Steel Screw Pack', price: 120.00 }
+    ];
+
+    let cart = [];
+    let html5QrCode = null;
+
+    function renderCatalog() {
+      const container = document.getElementById('productsGrid');
+      container.innerHTML = sampleProducts.map(p => `
+        <div class="bg-white border border-slate-200 rounded-xl p-3 flex justify-between items-center shadow-sm">
+          <div>
+            <h3 class="font-semibold text-slate-900 text-sm">${p.name}</h3>
+            <p class="text-xs font-bold text-slate-700">₹${p.price.toFixed(2)}</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="printSticker('${p.id}', '${p.name}', ${p.price})" class="px-3 py-1.5 bg-slate-100 text-slate-800 text-xs rounded-lg font-medium border border-slate-200 active:scale-95">Print QR</button>
+            <button onclick="addToCart('${p.id}')" class="px-3 py-1.5 bg-slate-900 text-white text-xs rounded-lg font-medium active:scale-95">+ Add</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function addToCart(productId) {
+      const prod = sampleProducts.find(p => p.id === productId);
+      if (!prod) return;
+      const existing = cart.find(item => item.id === productId);
+      if (existing) {
+        existing.qty += 1;
+      } else {
+        cart.push({ ...prod, qty: 1 });
+      }
+      updateCartUI();
+    }
+
+    function updateCartUI() {
+      const list = document.getElementById('cartItemsList');
+      const emptyMsg = document.getElementById('emptyCartMsg');
+      const cartCount = document.getElementById('cartCount');
+      const grandTotal = document.getElementById('grandTotal');
+
+      if (cart.length === 0) {
+        list.innerHTML = '';
+        list.appendChild(emptyMsg);
+        emptyMsg.classList.remove('hidden');
+        cartCount.innerText = '0 Items';
+        grandTotal.innerText = '₹0.00';
+        return;
+      }
+
+      emptyMsg.classList.add('hidden');
+      let total = 0;
+      let count = 0;
+
+      list.innerHTML = cart.map(item => {
+        const itemTotal = item.price * item.qty;
+        total += itemTotal;
+        count += item.qty;
+        return `
+          <div class="pt-2 flex justify-between items-center text-sm">
+            <div>
+              <div class="font-medium text-slate-900">${item.name}</div>
+              <div class="text-xs text-slate-500">₹${item.price.toFixed(2)} × ${item.qty}</div>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-slate-900">₹${itemTotal.toFixed(2)}</span>
+              <button onclick="removeFromCart('${item.id}')" class="text-slate-400 hover:text-red-500 text-xs px-1">✕</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      cartCount.innerText = `${count} Items`;
+      grandTotal.innerText = `₹${total.toFixed(2)}`;
+    }
+
+    function removeFromCart(id) {
+      cart = cart.filter(item => item.id !== id);
+      updateCartUI();
+    }
+
+    function switchTab(tab) {
+      const home = document.getElementById('tabHome');
+      const catalog = document.getElementById('tabCatalog');
+      const btnHome = document.getElementById('btnNavHome');
+      const btnCatalog = document.getElementById('btnNavCatalog');
+
+      if (tab === 'home') {
+        home.classList.remove('hidden');
+        catalog.classList.add('hidden');
+        btnHome.className = 'nav-btn flex flex-col items-center gap-1 text-slate-900 font-semibold';
+        btnCatalog.className = 'nav-btn flex flex-col items-center gap-1 text-slate-400 font-medium';
+      } else {
+        catalog.classList.remove('hidden');
+        home.classList.add('hidden');
+        btnCatalog.className = 'nav-btn flex flex-col items-center gap-1 text-slate-900 font-semibold';
+        btnHome.className = 'nav-btn flex flex-col items-center gap-1 text-slate-400 font-medium';
+      }
+    }
+
+    function printSticker(id, name, price) {
+      const printBox = document.getElementById('printArea');
+      printBox.innerHTML = `
+        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding: 2mm;">
+          <div id="printQrCode"></div>
+          <div style="font-size: 15pt; font-weight: 900; margin-top: 3mm; color: #000;">₹${price.toFixed(2)}</div>
+        </div>
+      `;
+      printBox.classList.remove('hidden');
+
+      new QRCode(document.getElementById("printQrCode"), {
+        text: id,
+        width: 140,
+        height: 140,
+        colorDark : "#000000",
+        colorLight : "#ffffff",
+        correctLevel : QRCode.CorrectLevel.H
+      });
+
+      setTimeout(() => {
+        window.print();
+        printBox.classList.add('hidden');
+      }, 300);
+    }
+
+    // SCANNER LOGIC
+    const modal = document.getElementById('scannerModal');
+    document.getElementById('openScannerBtn').onclick = () => {
+      modal.classList.remove('hidden');
+      html5QrCode = new Html5Qrcode("qrReader");
+      html5QrCode.start(
+        { facingMode: "environment" },
+        { fps: 15, qrbox: { width: 250, height: 250 } },
+        (decodedText) => {
+          if (navigator.vibrate) navigator.vibrate(100);
+          addToCart(decodedText);
+          closeScanner();
+        },
+        () => {}
+      ).catch(() => alert('Camera permission needed'));
+    };
+
+    function closeScanner() {
+      if (html5QrCode) {
+        html5QrCode.stop().then(() => {
+          modal.classList.add('hidden');
+          html5QrCode = null;
+        }).catch(() => {
+          modal.classList.add('hidden');
+        });
+      } else {
+        modal.classList.add('hidden');
+      }
+    }
+    document.getElementById('closeScannerBtn').onclick = closeScanner;
+
+    // INIT
+    renderCatalog();
+  </script>
+</body>
+</html>
